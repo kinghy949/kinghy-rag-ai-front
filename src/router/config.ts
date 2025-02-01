@@ -57,6 +57,16 @@ let routes = [
       icon: "Setting",
     },
   },
+  {
+    path: "/rag",
+    name: "rag",
+    component: () => import("@/view/rag/RagView.vue"),
+    meta: {
+      isMenu: true,
+      description: "RAG",
+      icon: "PictureRounded",
+    },
+  },
 ];
 
 export default routes;

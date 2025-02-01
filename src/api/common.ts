@@ -13,6 +13,10 @@ export const enum ChatApi {
   Models = "/chat/models",
 }
 
+export const enum RagApi {
+  StreamRag = "/ai/rag",
+}
+
 export const enum OneApi {
   AddOneApi = "/one-api",
   QueryApi = "/select",
