@@ -67,6 +67,16 @@ let routes = [
       icon: "PictureRounded",
     },
   },
+  {
+    path: "/ragChat",
+    name: "ragChat",
+    component: () => import("@/view/ragChat/RagChatView.vue"),
+    meta: {
+      isMenu: true,
+      description: "RagChat",
+      icon: "PictureRounded",
+    },
+  },
 ];
 
 export default routes;
