@@ -50,6 +50,8 @@ const handleSend = async () => {
     content: userInput.value
   })
   
+  const currentInput = userInput.value // 保存当前输入
+  userInput.value = '' // 立即清空输入框
   loading.value = true
   let assistantMessage = {
     role: 'assistant',
@@ -58,7 +60,7 @@ const handleSend = async () => {
   messages.value.push(assistantMessage)
   
   try {
-    const response = await fetch(BASE_URL+`/chat/stream?message=${encodeURIComponent(userInput.value)}`)
+    const response = await fetch(BASE_URL+`/chat/stream?message=${encodeURIComponent(currentInput)}`)
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     
@@ -78,7 +80,6 @@ const handleSend = async () => {
     assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
   } finally {
     loading.value = false
-    userInput.value = ''
   }
 }
 

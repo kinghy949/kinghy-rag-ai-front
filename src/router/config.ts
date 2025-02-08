@@ -37,16 +37,16 @@ let routes = [
       icon: "Collection",
     },
   },
-  {
-    path: "/manage",
-    name: "manage",
-    component: () => import("@/view/manage/ApiManageView.vue"),
-    meta: {
-      isMenu: true,
-      description: "API管理",
-      icon: "Key",
-    },
-  },
+  // {
+  //   path: "/manage",
+  //   name: "manage",
+  //   component: () => import("@/view/manage/ApiManageView.vue"),
+  //   meta: {
+  //     isMenu: true,
+  //     description: "API管理",
+  //     icon: "Key",
+  //   },
+  // },
   {
     path: "/settings",
     name: "settings",

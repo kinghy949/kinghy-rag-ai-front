@@ -12,8 +12,8 @@
         <el-icon size="50">
           <el-image :src="Logo"></el-image>
         </el-icon>
-        <h1>Know Hub AI</h1>
-        <el-text style="color: #bfcbd9">基于个人知识库的AI对话</el-text>
+        <h1>RAG-AI</h1>
+        <el-text style="color: #bfcbd9" size="small">基于RAG技术的个人知识库AI问答系统</el-text>
       </div>
       <el-divider />
 

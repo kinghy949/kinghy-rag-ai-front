@@ -2,9 +2,9 @@
  * 后端API地址
  */
 export const enum KnowApi {
-  UploadFile = "/know/file/upload",
-  QueryFile = "/know/contents",
-  DeleteFile = "/know/delete",
+  UploadFile = "/knowledge/file/upload",
+  QueryFile = "/knowledge/contents",
+  DeleteFile = "/knowledge/delete",
 }
 
 export const enum ChatApi {
