@@ -4,7 +4,9 @@
       <div v-for="(message, index) in messages" :key="index" 
            :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
         <div class="message-wrapper">
-          <div class="message-content">{{ message.content }}</div>
+          <div class="message-content" :class="{ 'typing': message.isTyping }">
+            {{ message.content }}<span v-if="message.isTyping" class="typing-cursor">|</span>
+          </div>
           <el-button
             class="copy-button"
             type="text"
@@ -25,53 +27,62 @@
         placeholder="请输入您的问题..."
         @keyup.enter.native="handleSend"
       />
-      <el-button type="primary" @click="handleSend" :loading="loading">发送</el-button>
+    </div>
+    <div class="button-group">
+      <el-button type="warning" @click="clearMessages">清空对话</el-button>
+      <el-button type="primary" @click="handleSend" :loading="loading">普通回答</el-button>
+      <el-button type="primary">RAG回答</el-button>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import {BASE_URL} from "@/http/config.ts";
+import { BASE_URL } from "@/http/config.ts"
 import { Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
-const messages = ref([])
-const userInput = ref('')
-const loading = ref(false)
-const messageContainer = ref(null)
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  isTyping?: boolean
+}
+
+const messages = ref<ChatMessage[]>([])
+const userInput = ref<string>('')
+const loading = ref<boolean>(false)
+const messageContainer = ref<HTMLElement | null>(null)
 
 const handleSend = async () => {
   if (!userInput.value.trim() || loading.value) return
-  
-  // 添加用户消息
+
   messages.value.push({
     role: 'user',
     content: userInput.value
   })
-  
-  const currentInput = userInput.value // 保存当前输入
-  userInput.value = '' // 立即清空输入框
+
+  const currentInput = userInput.value
+  userInput.value = ''
   loading.value = true
   let assistantMessage = {
     role: 'assistant',
-    content: ''
+    content: '',
+    isTyping: true  // 添加打字机效果标记
   }
   messages.value.push(assistantMessage)
-  
+
   try {
     const response = await fetch(BASE_URL+`/chat/stream?message=${encodeURIComponent(currentInput)}`)
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    
+
     while (true) {
       const { value, done } = await reader.read()
       if (done) break
-      
+
       const text = decoder.decode(value)
       assistantMessage.content += text
-      
-      // 滚动到底部
+
       await nextTick()
       scrollToBottom()
     }
@@ -80,6 +91,7 @@ const handleSend = async () => {
     assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
   } finally {
     loading.value = false
+    assistantMessage.isTyping = false  // 结束打字机效果
   }
 }
 
@@ -106,8 +118,14 @@ const copyMessage = async (content) => {
   }
 }
 
+const clearMessages = () => {
+  messages.value = [{
+    role: 'assistant',
+    content: '你好！我是AI助手，请问有什么可以帮助你的吗？'
+  }]
+}
+
 onMounted(() => {
-  // 可以在这里添加欢迎消息
   messages.value.push({
     role: 'assistant',
     content: '你好！我是AI助手，请问有什么可以帮助你的吗？'
@@ -115,7 +133,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="less">
 .chat-container {
   height: 90vh;  /* 调整容器高度 */
   display: flex;
@@ -207,5 +225,35 @@ onMounted(() => {
 
 .chat-messages::-webkit-scrollbar-track {
   background-color: #f0f2f5;
+}
+
+.typing-cursor {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typing {
+  border-right: none;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;  /* 改为靠右对齐 */
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.button-group .el-button {
+  width: 100px;
+  height: 40px;
 }
 </style>

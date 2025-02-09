@@ -2,25 +2,35 @@ let routes = [
   {
     path: "/",
     name: "index",
-    redirect: "/chat",
+    redirect: "/ragChat",
     meta: {
       isMenu: false,
     },
   },
   {
-    path: "/chat",
-    name: "chat",
-    component: () => import("@/view/chat/ChatView.vue"),
+    path: "/ragChat",
+    name: "ragChat",
+    component: () => import("@/view/ragChat/RagChatView.vue"),
     meta: {
       isMenu: true,
-      description: "AI对话",
+      description: "RagChat",
       icon: "ChatDotRound",
     },
   },
+  // {
+  //   path: "/chat",
+  //   name: "chat",
+  //   component: () => import("@/view/chat/ChatView.vue"),
+  //   meta: {
+  //     isMenu: true,
+  //     description: "AI对话",
+  //     icon: "ChatDotRound",
+  //   },
+  // },
   {
     path: "/draw",
-    name: "绘图",
-    component: () => import("@/view/draw/Draw.vue"),
+    name: "draw",
+    component: () => import("@/view/draw/DrawImageView.vue"),
     meta: {
       isMenu: true,
       description: "AI绘画",
@@ -47,16 +57,16 @@ let routes = [
   //     icon: "Key",
   //   },
   // },
-  {
-    path: "/settings",
-    name: "settings",
-    component: () => import("@/view/chat/SettingView.vue"),
-    meta: {
-      isMenu: true,
-      description: "设置",
-      icon: "Setting",
-    },
-  },
+  // {
+  //   path: "/settings",
+  //   name: "settings",
+  //   component: () => import("@/view/chat/SettingView.vue"),
+  //   meta: {
+  //     isMenu: true,
+  //     description: "设置",
+  //     icon: "Setting",
+  //   },
+  // },
   {
     path: "/rag",
     name: "rag",
@@ -67,16 +77,7 @@ let routes = [
       icon: "PictureRounded",
     },
   },
-  {
-    path: "/ragChat",
-    name: "ragChat",
-    component: () => import("@/view/ragChat/RagChatView.vue"),
-    meta: {
-      isMenu: true,
-      description: "RagChat",
-      icon: "PictureRounded",
-    },
-  },
+
 ];
 
 export default routes;

@@ -68,5 +68,11 @@ export const useChatMessageStore = defineStore("message", {
         JSON.stringify(this.getGlobalMessage)
       );
     },
+    updateLastAssistantMessage(content: string) {
+      const lastMessage = this.globalMessage[this.globalMessage.length - 1];
+      if (lastMessage && lastMessage.role === 'assistant') {
+        lastMessage.content += content;
+      }
+    }
   },
 });
