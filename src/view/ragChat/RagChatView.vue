@@ -4,8 +4,7 @@
       <div v-for="(message, index) in messages" :key="index" 
            :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
         <div class="message-wrapper">
-          <div class="message-content" :class="{ 'typing': message.isTyping }">
-            {{ message.content }}<span v-if="message.isTyping" class="typing-cursor">|</span>
+          <div class="message-content" :class="{ 'typing': message.isTyping }" v-html="renderMarkdown(message.content)">
           </div>
           <el-button
             class="copy-button"
@@ -31,13 +30,14 @@
     <div class="button-group">
       <el-button type="warning" @click="clearMessages">清空对话</el-button>
       <el-button type="primary" @click="handleSend" :loading="loading">普通回答</el-button>
-      <el-button type="primary">RAG回答</el-button>
+      <el-button type="primary" @click="handleRagSend" :loading="loading">RAG回答</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
+import { marked } from 'marked'
 import { BASE_URL } from "@/http/config.ts"
 import { Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -95,6 +95,58 @@ const handleSend = async () => {
   }
 }
 
+const handleRagSend = async () => {
+  if (!userInput.value.trim() || loading.value) return
+
+  messages.value.push({
+    role: 'user',
+    content: userInput.value
+  })
+
+  const currentInput = userInput.value
+  userInput.value = ''
+  loading.value = true
+  let assistantMessage = {
+    role: 'assistant',
+    content: '',
+    isTyping: true
+  }
+  messages.value.push(assistantMessage)
+
+  try {
+    const response = await fetch(BASE_URL+`/ai/rag?message=${encodeURIComponent(currentInput)}`)
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+
+      const text = decoder.decode(value)
+      // 处理SSE格式的数据
+      const lines = text.split('\n')
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          // 去掉'data:'前缀，获取实际内容
+          const content = line.slice(5).trim()
+          if (content) {
+            assistantMessage.content += content
+          }
+        }
+      }
+
+      await nextTick()
+      scrollToBottom()
+    }
+  } catch (error) {
+    console.error('Error:', error)
+    assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
+  } finally {
+    loading.value = false
+    assistantMessage.isTyping = false
+  }
+}
+
 const scrollToBottom = () => {
   if (messageContainer.value) {
     messageContainer.value.scrollTop = messageContainer.value.scrollHeight
@@ -123,6 +175,19 @@ const clearMessages = () => {
     role: 'assistant',
     content: '你好！我是AI助手，请问有什么可以帮助你的吗？'
   }]
+}
+
+// 添加markdown渲染函数
+const renderMarkdown = (content: string) => {
+  try {
+    return marked(content, {
+      breaks: true, // 支持换行
+      sanitize: true // 消毒HTML标签，防止XSS攻击
+    })
+  } catch (error) {
+    console.error('Markdown parsing error:', error)
+    return content
+  }
 }
 
 onMounted(() => {
@@ -182,6 +247,36 @@ onMounted(() => {
   border-radius: 10px;
   background-color: #f0f0f0;
   word-break: break-word;
+
+  :deep(p) {
+    margin: 0;
+  }
+
+  :deep(pre) {
+    background-color: #f8f8f8;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  :deep(code) {
+    font-family: Consolas, Monaco, 'Andale Mono', monospace;
+    background-color: #f8f8f8;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+
+  :deep(ul), :deep(ol) {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+
+  :deep(blockquote) {
+    margin: 8px 0;
+    padding-left: 10px;
+    border-left: 4px solid #ddd;
+    color: #666;
+  }
 }
 
 .user-message .message-content {
