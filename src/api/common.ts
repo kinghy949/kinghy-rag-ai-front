@@ -5,6 +5,7 @@ export const enum KnowApi {
   UploadFile = "/knowledge/file/upload",
   QueryFile = "/knowledge/contents",
   DeleteFile = "/knowledge/delete",
+  DownloadFile = "/knowledge/download",
 }
 
 export const enum ChatApi {

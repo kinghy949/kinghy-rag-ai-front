@@ -1,3 +1,4 @@
+
 /**
  * 请求对象
  */
@@ -40,6 +41,10 @@ export interface QueryFileDto {
 }
 
 export interface DeleteFileDto {
+  ids: number[];
+}
+
+export interface DownloadFileDto {
   ids: number[];
 }
 

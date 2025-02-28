@@ -14,7 +14,7 @@
 <script setup lang="ts">
 const asideStyle = ref({
   height: "95vh",
-  width: "200px",
+  width: "210px",
   // transition: "width 0.5s",
 });
 const changeAside = (isCollapse: boolean) => {

@@ -1,7 +1,7 @@
 import { KnowApi } from "./common";
 import { BASE_URL } from "@/http/config";
 import axios from "axios";
-import { DeleteFileDto, QueryFileDto } from "./dto";
+import { DownloadFileDto,DeleteFileDto, QueryFileDto } from "./dto";
 import service from "@/http";
 
 type Res = any;
@@ -35,6 +35,13 @@ export const queryFileApi = async (params: QueryFileDto): Promise<Res> => {
 // 删除指定ID列表的知识库
 export const deleteFileApi = async (params: DeleteFileDto): Promise<Res> => {
   return service.delete(KnowApi.DeleteFile, {
+    params,
+  });
+};
+
+// 下载指定ID列表的知识库
+export const downloadFileApi = async (params: DownloadFileDto): Promise<Res> => {
+  return service.get(KnowApi.DownloadFile, {
     params,
   });
 };

@@ -35,6 +35,13 @@
       >
         批量删除
       </el-button>
+      <el-button
+        type="primary"
+        @click="batchDownload"
+        :disabled="selectedFiles.length === 0"
+      >
+        批量下载
+      </el-button>
       <el-form-item label="文件名:" style="margin-bottom: 0">
         <el-input placeholder="请输入文件名称" v-model="queryFileDto.fileName" />
       </el-form-item>
@@ -89,7 +96,7 @@
           @click="openFilePreview(scope.row)"
           type="primary"
           size="small"
-          >预览</el-button
+          >下载</el-button
         >
       </template>
     </el-table-column>
@@ -110,7 +117,7 @@
 
 <script setup lang="ts">
 import { type UploadUserFile, ElMessage, ElMessageBox } from "element-plus";
-import { uploadFileApi, queryFileApi, deleteFileApi } from "@/api/KnowHubApi";
+import {uploadFileApi, queryFileApi, deleteFileApi, downloadFileApi} from "@/api/KnowHubApi";
 import { StoreFile } from "@/api/data";
 import { QueryFileDto } from "@/api/dto";
 import { format } from "date-fns";
@@ -236,8 +243,32 @@ const deleteStoreFile = (e: any) => {
     })
     .catch(() => {});
 };
+
 const openFilePreview = (e: any) => {
-  window.open(e.url, "_blank");
+  downloadFileApi({
+    ids: e.id,
+  })
+    .then((res) => {
+      let code = res.code;
+      if (code == 0) {
+        ElMessage({
+          type: "success",
+          message: res.data,
+        });
+        loadStoreFileData();
+      } else {
+        ElMessage({
+          type: "error",
+          message: res.message,
+        });
+      }
+    })
+    .catch((err) => {
+      ElMessage({
+        type: "error",
+        message: err,
+      });
+    });
 };
 
 const handleSizeChange = (val: number) => {
@@ -290,6 +321,35 @@ const batchDelete = () => {
         });
     })
     .catch(() => {});
+}
+const batchDownload = () => {
+  if (selectedFiles.value.length === 0) return
+
+  const ids = selectedFiles.value.map(file => file.id).join(',')
+  downloadFileApi({
+    ids: ids,
+  })
+    .then((res) => {
+      if (res.code == 0) {
+        ElMessage({
+          type: "success",
+          message: res.data,
+        });
+        selectedFiles.value = [];
+        loadStoreFileData();
+      } else {
+        ElMessage({
+          type: "error",
+          message: res.message,
+        });
+      }
+    })
+    .catch((err) => {
+      ElMessage({
+        type: "error",
+        message: err,
+      });
+    });
 }
 
 onMounted(() => {
