@@ -5,6 +5,18 @@ let routes = [
     redirect: "/ragChat",
     meta: {
       isMenu: false,
+      requiresAuth: true,
+    },
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: () => import("@/view/login/RegisterLoginView.vue"),
+    meta: {
+      isMenu: true,
+      requiresAuth: false,
+      description: "登录",
+      icon: "Collection",
     },
   },
   {
@@ -17,16 +29,6 @@ let routes = [
       icon: "ChatDotRound",
     },
   },
-  // {
-  //   path: "/chat",
-  //   name: "chat",
-  //   component: () => import("@/view/chat/ChatView.vue"),
-  //   meta: {
-  //     isMenu: true,
-  //     description: "AI对话",
-  //     icon: "ChatDotRound",
-  //   },
-  // },
   {
     path: "/draw",
     name: "draw",
@@ -47,37 +49,6 @@ let routes = [
       icon: "Collection",
     },
   },
-  // {
-  //   path: "/manage",
-  //   name: "manage",
-  //   component: () => import("@/view/manage/ApiManageView.vue"),
-  //   meta: {
-  //     isMenu: true,
-  //     description: "API管理",
-  //     icon: "Key",
-  //   },
-  // },
-  // {
-  //   path: "/settings",
-  //   name: "settings",
-  //   component: () => import("@/view/chat/SettingView.vue"),
-  //   meta: {
-  //     isMenu: true,
-  //     description: "设置",
-  //     icon: "Setting",
-  //   },
-  // },
-  // {
-  //   path: "/rag",
-  //   name: "rag",
-  //   component: () => import("@/view/rag/RagView.vue"),
-  //   meta: {
-  //     isMenu: true,
-  //     description: "RAG",
-  //     icon: "PictureRounded",
-  //   },
-  // },
-
 ];
 
 export default routes;

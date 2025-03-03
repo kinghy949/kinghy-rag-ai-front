@@ -17,7 +17,6 @@
         </div>
       </div>
     </div>
-    
     <div class="input-container">
       <el-input
         v-model="userInput"
