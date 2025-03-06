@@ -16,7 +16,7 @@ let routes = [
       isMenu: true,
       requiresAuth: false,
       description: "登录",
-      icon: "Collection",
+      icon: "Avatar",
     },
   },
   {
@@ -47,6 +47,36 @@ let routes = [
       isMenu: true,
       description: "我的知识库",
       icon: "Collection",
+    },
+  },
+  {
+    path: "/user",
+    name: "user",
+    component: () => import("@/view/user/UserView.vue"),
+    meta: {
+      isMenu: true,
+      description: "用户管理",
+      icon: "UserFilled",
+    },
+  },
+  {
+    path: "/logInfo",
+    name: "logInfo",
+    component: () => import("@/view/logInfo/LogInfoView.vue"),
+    meta: {
+      isMenu: true,
+      description: "日志管理",
+      icon: "List",
+    },
+  },
+  {
+    path: "/sensitive",
+    name: "sensitive",
+    component: () => import("@/view/sensitive/SensitiveWordView.vue"),
+    meta: {
+      isMenu: true,
+      description: "敏感词管理",
+      icon: "WarnTriangleFilled"
     },
   },
 ];
