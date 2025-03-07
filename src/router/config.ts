@@ -27,6 +27,7 @@ let routes = [
       isMenu: true,
       description: "RagChat",
       icon: "ChatDotRound",
+      requiresAuth: true,
     },
   },
   {
@@ -37,6 +38,7 @@ let routes = [
       isMenu: true,
       description: "AI绘画",
       icon: "PictureRounded",
+      requiresAuth: true,
     },
   },
   {
@@ -47,6 +49,7 @@ let routes = [
       isMenu: true,
       description: "我的知识库",
       icon: "Collection",
+      requiresAuth: true,
     },
   },
   {
@@ -57,6 +60,8 @@ let routes = [
       isMenu: true,
       description: "用户管理",
       icon: "UserFilled",
+      requiresAuth: true,
+      roles: ['admin']
     },
   },
   {
@@ -67,6 +72,8 @@ let routes = [
       isMenu: true,
       description: "日志管理",
       icon: "List",
+      requiresAuth: true,
+      roles: ['admin']
     },
   },
   {
@@ -76,7 +83,9 @@ let routes = [
     meta: {
       isMenu: true,
       description: "敏感词管理",
-      icon: "WarnTriangleFilled"
+      icon: "WarnTriangleFilled",
+      requiresAuth: true,
+      roles: ['admin']
     },
   },
 ];

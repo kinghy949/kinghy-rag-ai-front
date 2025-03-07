@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <el-form :model="loginForm" ref="formRef" label-width="100px">
+    <el-form v-if="!isLoggedIn" :model="loginForm" ref="formRef" label-width="100px">
       <el-form-item label="用户名" prop="userName" :rules="[{ required: true, message: '请输入用户名', trigger: 'blur' }]">
         <el-input v-model="loginForm.userName" placeholder="请输入用户名"></el-input>
       </el-form-item>
@@ -13,9 +13,42 @@
       </el-form-item>
     </el-form>
 
-    <el-dialog 
+    <div v-else class="welcome-container">
+      <h1>欢迎使用基于RAG技术的个人知识库AI问答系统</h1>
+      <div class="user-profile">
+        <el-dropdown @command="handleCommand">
+          <el-avatar :size="50" :src="avatarUrl" @error="() => true">
+            {{ userInfo.userName?.charAt(0)?.toUpperCase() }}
+          </el-avatar>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </div>
+
+    <!-- 个人信息对话框 -->
+    <el-dialog
+      v-model="profileDialogVisible"
+      title="个人信息"
+      width="30%"
+    >
+      <div class="user-info">
+        <p><strong>姓名：</strong>{{ userInfo.name }}</p>
+        <p><strong>用户名：</strong>{{ userInfo.userName }}</p>
+        <p><strong>手机号：</strong>{{ userInfo.phone }}</p>
+        <p><strong>性别：</strong>{{ userInfo.sex }}</p>
+        <p><strong>身份证号：</strong>{{ userInfo.idNumber }}</p>
+        <p><strong>创建时间：</strong>{{ userInfo.createTime }}</p>
+      </div>
+    </el-dialog>
+
+    <el-dialog
       v-model="registerDialogVisible"
-      title="注册" 
+      title="注册"
       width="30%"
       :close-on-click-modal="false"
     >
@@ -53,11 +86,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { BASE_URL } from '@/http/config'
-import { useChatOptionsStore } from '@/store/options'
+
+interface UserInfo {
+  id: number;
+  name: string;
+  userName: string;
+  password: string;
+  phone: string;
+  sex: string;
+  idNumber: string;
+  status: number;
+  createTime: string;
+  updateTime: string;
+  createUser: string | null;
+  updateUser: string | null;
+}
 
 const loginForm = ref({
   userName: '',
@@ -75,7 +122,69 @@ const registerForm = ref({
 })
 
 const registerDialogVisible = ref(false)
+const isLoggedIn = ref(false)
+const userInfo = ref<UserInfo>({
+  id: 0,
+  name: '',
+  userName: '',
+  password: '',
+  phone: '',
+  sex: '',
+  idNumber: '',
+  status: 1,
+  createTime: '',
+  updateTime: '',
+  createUser: null,
+  updateUser: null
+})
+const profileDialogVisible = ref(false)
+const avatarUrl = ref('')
 
+const fetchUserInfo = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    const response = await fetch(BASE_URL + '/user/1896504025411887106', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    const data = await response.json()
+    if (data.code === 0) {
+      userInfo.value = data.data
+      isLoggedIn.value = true
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+  }
+}
+
+const handleCommand = (command: string) => {
+  if (command === 'profile') {
+    profileDialogVisible.value = true
+  } else if (command === 'logout') {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userRole')
+    isLoggedIn.value = false
+    userInfo.value = {
+      id: 0,
+      name: '',
+      userName: '',
+      password: '',
+      phone: '',
+      sex: '',
+      idNumber: '',
+      status: 1,
+      createTime: '',
+      updateTime: '',
+      createUser: null,
+      updateUser: null
+    }
+    router.push('/login')
+    ElMessage({ message: '已成功退出登录', type: 'success' })
+  }
+}
 
 const handleLogin = async () => {
   try {
@@ -85,7 +194,9 @@ const handleLogin = async () => {
     const data = await response.json()
     if (data.code === 0) {
       localStorage.setItem('token', data.data.token)
+      localStorage.setItem('userRole', data.data.userName)
       ElMessage({ message: '登录成功', type: 'success' })
+      await fetchUserInfo()
       router.push('/')
     } else {
       ElMessage({ message: data.message, type: 'error' })
@@ -131,6 +242,13 @@ const handleRegister = async () => {
 const showRegisterDialog = () => {
   registerDialogVisible.value = true
 }
+
+onMounted(() => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    fetchUserInfo()
+  }
+})
 </script>
 
 <style scoped lang="less">
@@ -141,6 +259,27 @@ const showRegisterDialog = () => {
   justify-content: center;
   align-items: center;
   background-color: #f5f5f5;
+}
+
+.welcome-container {
+  text-align: center;
+
+  h1 {
+    margin-bottom: 20px;
+    color: #409EFF;
+  }
+}
+
+.user-profile {
+  margin-top: 20px;
+  cursor: pointer;
+}
+
+.user-info {
+  p {
+    margin: 10px 0;
+    font-size: 14px;
+  }
 }
 
 .el-form {
