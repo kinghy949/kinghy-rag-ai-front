@@ -1,6 +1,14 @@
 <template>
   <div class="login-container">
-    <el-form v-if="!isLoggedIn" :model="loginForm" ref="formRef" label-width="100px">
+    <el-form 
+      v-if="!isLoggedIn" 
+      :model="loginForm" 
+      ref="formRef" 
+      label-width="100px"
+      v-loading="isLoading"
+      element-loading-text="处理中..."
+      element-loading-background="rgba(255, 255, 255, 0.8)"
+    >
       <el-form-item label="用户名" prop="userName" :rules="[{ required: true, message: '请输入用户名', trigger: 'blur' }]">
         <el-input v-model="loginForm.userName" placeholder="请输入用户名"></el-input>
       </el-form-item>
@@ -14,7 +22,7 @@
     </el-form>
 
     <div v-else class="welcome-container">
-      <h1>欢迎使用基于RAG技术的个人知识库AI问答系统</h1>
+      <h1 class="welcome-title">欢迎使用基于RAG技术的个人知识库AI问答系统</h1>
       <div class="user-profile">
         <el-dropdown @command="handleCommand">
           <el-avatar :size="50" :src="avatarUrl" @error="() => true">
@@ -34,16 +42,40 @@
     <el-dialog
       v-model="profileDialogVisible"
       title="个人信息"
-      width="30%"
+      width="500px"
+      :close-on-click-modal="false"
     >
       <div class="user-info">
-        <p><strong>姓名：</strong>{{ userInfo.name }}</p>
-        <p><strong>用户名：</strong>{{ userInfo.userName }}</p>
-        <p><strong>手机号：</strong>{{ userInfo.phone }}</p>
-        <p><strong>性别：</strong>{{ userInfo.sex }}</p>
-        <p><strong>身份证号：</strong>{{ userInfo.idNumber }}</p>
-        <p><strong>创建时间：</strong>{{ userInfo.createTime }}</p>
+        <div class="info-item">
+          <span class="info-label"><el-icon><User /></el-icon> 姓名</span>
+          <span class="info-value">{{ userInfo.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label"><el-icon><UserFilled /></el-icon> 用户名</span>
+          <span class="info-value">{{ userInfo.userName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label"><el-icon><Iphone /></el-icon> 手机号</span>
+          <span class="info-value">{{ userInfo.phone }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label"><el-icon><Male /></el-icon> 性别</span>
+          <span class="info-value">{{ userInfo.sex }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label"><el-icon><Document /></el-icon> 身份证号</span>
+          <span class="info-value">{{ userInfo.idNumber }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label"><el-icon><Timer /></el-icon> 创建时间</span>
+          <span class="info-value">{{ userInfo.createTime }}</span>
+        </div>
       </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="profileDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
     </el-dialog>
 
     <el-dialog
@@ -88,6 +120,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { User, UserFilled, Iphone, Male, Document, Timer } from '@element-plus/icons-vue'
 import router from '@/router'
 import { BASE_URL } from '@/http/config'
 
@@ -139,13 +172,14 @@ const userInfo = ref<UserInfo>({
 })
 const profileDialogVisible = ref(false)
 const avatarUrl = ref('')
+const isLoading = ref(false)
 
 const fetchUserInfo = async () => {
   try {
     const token = localStorage.getItem('token')
-    if (!token) return
-
-    const response = await fetch(BASE_URL + '/user/1896504025411887106', {
+    const userId = localStorage.getItem('userId')
+    if (!token || !userId) return
+    const response = await fetch(BASE_URL + `/user/${userId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -166,6 +200,7 @@ const handleCommand = (command: string) => {
   } else if (command === 'logout') {
     localStorage.removeItem('token')
     localStorage.removeItem('userRole')
+    localStorage.removeItem('userId')
     isLoggedIn.value = false
     userInfo.value = {
       id: 0,
@@ -188,6 +223,7 @@ const handleCommand = (command: string) => {
 
 const handleLogin = async () => {
   try {
+    isLoading.value = true
     const response = await fetch(BASE_URL+`/user/login?userName=${loginForm.value.userName}&password=${loginForm.value.password}`, {
       method: 'POST',
     })
@@ -195,6 +231,8 @@ const handleLogin = async () => {
     if (data.code === 0) {
       localStorage.setItem('token', data.data.token)
       localStorage.setItem('userRole', data.data.userName)
+      localStorage.setItem('userId',data.data.id)
+
       ElMessage({ message: '登录成功', type: 'success' })
       await fetchUserInfo()
       router.push('/')
@@ -204,11 +242,14 @@ const handleLogin = async () => {
   } catch (error) {
     console.error('登录错误:', error)
     ElMessage({ message: '登录失败，请稍后重试', type: 'error' })
+  } finally {
+    isLoading.value = false
   }
 }
 
 const handleRegister = async () => {
   try {
+    isLoading.value = true
     const response = await fetch(BASE_URL+'/user/register', {
       method: 'POST',
       headers: {
@@ -236,6 +277,8 @@ const handleRegister = async () => {
   } catch (error) {
     console.error('注册错误:', error)
     ElMessage({ message: '注册失败，请稍后重试', type: 'error' })
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -263,22 +306,47 @@ onMounted(() => {
 
 .welcome-container {
   text-align: center;
+  width: 100%;
+  position: relative;
 
   h1 {
-    margin-bottom: 20px;
+    margin-bottom: 80px;
     color: #409EFF;
+    font-size: 45px;
   }
 }
 
 .user-profile {
-  margin-top: 20px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
   cursor: pointer;
+  z-index: 1000;
+  color: #409EFF;
 }
 
 .user-info {
-  p {
-    margin: 10px 0;
-    font-size: 14px;
+  padding: 20px;
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #f5f7fa;
+    
+    .info-label {
+      width: 80px;
+      color: #909399;
+      font-size: 14px;
+    }
+    
+    .info-value {
+      color: #303133;
+      font-size: 14px;
+      flex: 1;
+    }
   }
 }
 

@@ -16,6 +16,9 @@
       <!-- 表格 -->
       <div class="table-container">
         <el-table 
+          v-loading="isLoading"
+          element-loading-text="加载中..."
+          element-loading-background="rgba(255, 255, 255, 0.8)"
           :data="sensitiveList" 
           style="width: 100%" 
           border
@@ -108,6 +111,7 @@ const total = ref(0)
 const selectedIds = ref<number[]>([])
 const dialogVisible = ref(false)
 const formRef = ref<FormInstance>()
+const isLoading = ref(false)
 
 // 查询参数
 const queryParams = ref({
@@ -133,6 +137,7 @@ const formRules: FormRules = {
 
 // 加载敏感词列表
 const loadSensitiveList = async () => {
+  isLoading.value = true
   try {
     const params = { 
       page: queryParams.value.page - 1,
@@ -148,6 +153,8 @@ const loadSensitiveList = async () => {
   } catch (error) {
     console.error('获取敏感词列表错误:', error)
     ElMessage.error('获取敏感词列表失败')
+  } finally {
+    isLoading.value = false
   }
 }
 

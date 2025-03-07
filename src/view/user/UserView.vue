@@ -7,6 +7,9 @@
       
       <div class="table-container">
         <el-table 
+          v-loading="isLoading"
+          element-loading-text="加载中..."
+          element-loading-background="rgba(255, 255, 255, 0.8)"
           :data="userList" 
           style="width: 100%" 
           border

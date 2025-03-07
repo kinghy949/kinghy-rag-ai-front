@@ -29,7 +29,10 @@
       
       <!-- 表格 -->
       <div class="table-container">
-        <el-table 
+        <el-table
+          v-loading="isLoading"
+          element-loading-text="加载中..."
+          element-loading-background="rgba(255, 255, 255, 0.8)"
           :data="logList" 
           style="width: 100%" 
           border
@@ -76,7 +79,6 @@ const total = ref(0)
 const isLoading = ref(false)
 const selectedIds = ref<string[]>([])
 const searchFormRef = ref<FormInstance>()
-
 // 查询参数
 const queryParams = ref<LogQueryParams>({
   page: 1,
