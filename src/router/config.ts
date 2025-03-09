@@ -15,7 +15,7 @@ let routes = [
     meta: {
       isMenu: true,
       requiresAuth: false,
-      description: "登录",
+      description: "个人中心",
       icon: "Avatar",
     },
   },
@@ -83,6 +83,18 @@ let routes = [
     meta: {
       isMenu: true,
       description: "敏感词管理",
+      icon: "WarnTriangleFilled",
+      requiresAuth: true,
+      roles: ['admin']
+    },
+  },
+  {
+    path: "/frequency",
+    name: "frequency",
+    component: () => import("@/view/frequency/WordFrequencyView.vue"),
+    meta: {
+      isMenu: true,
+      description: "热点词分析",
       icon: "WarnTriangleFilled",
       requiresAuth: true,
       roles: ['admin']
