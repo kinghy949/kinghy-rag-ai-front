@@ -50,7 +50,7 @@
       </div>
     </el-card>
 
-    <!-- 添加用户对话框 -->
+    <!-- 用户信息对话框 -->
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
@@ -59,7 +59,7 @@
       <el-form
         ref="userFormRef"
         :model="userForm"
-        :rules="userRules"
+        :rules="isEdit ? editRules : userRules"
         label-width="100px"
       >
         <el-form-item label="姓名" prop="name">
@@ -68,7 +68,7 @@
         <el-form-item label="用户名" prop="userName">
           <el-input v-model="userForm.userName" />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
+        <el-form-item label="密码" prop="password" v-if="!isEdit">
           <el-input v-model="userForm.password" type="password" />
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
@@ -97,8 +97,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { queryFileApi, registerUserApi } from '@/api/UserApi'
-import {QueryFileDto} from "@/api/dto.ts";
+import { queryFileApi, registerUserApi, updateUserApi } from '@/api/UserApi'
+import { QueryFileDto } from "@/api/dto.ts"
 import type { FormInstance, FormRules } from 'element-plus'
 
 interface UserInfo {
@@ -139,11 +139,29 @@ const userForm = ref({
   idNumber: ''
 })
 
+const isEdit = ref(false)
+const currentUserId = ref<number | null>(null)
+
 // 表单验证规则
 const userRules: FormRules = {
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+  ],
+  sex: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  idNumber: [
+    { required: true, message: '请输入身份证号', trigger: 'blur' },
+    { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, message: '请输入正确的身份证号', trigger: 'blur' }
+  ]
+}
+
+// 编辑模式的表单验证规则（不需要密码验证）
+const editRules: FormRules = {
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
@@ -198,7 +216,9 @@ const handleSizeChange = (val: number) => {
 
 // 新增用户
 const handleAdd = () => {
+  isEdit.value = false
   dialogTitle.value = '新增用户'
+  currentUserId.value = null
   userForm.value = {
     name: '',
     userName: '',
@@ -212,8 +232,18 @@ const handleAdd = () => {
 
 // 编辑用户
 const handleEdit = (row: UserInfo) => {
-  // TODO: 实现编辑用户功能
-  ElMessage.info('编辑用户功能待实现')
+  isEdit.value = true
+  dialogTitle.value = '编辑用户'
+  currentUserId.value = row.id
+  userForm.value = {
+    name: row.name,
+    userName: row.userName,
+    password: '', // 编辑时不需要密码
+    phone: row.phone,
+    sex: row.sex,
+    idNumber: row.idNumber
+  }
+  dialogVisible.value = true
 }
 
 // 删除用户
@@ -234,7 +264,6 @@ const handleDelete = (row: UserInfo) => {
   })
 }
 
-
 // 提交表单
 const submitForm = async () => {
   if (!userFormRef.value) return
@@ -242,17 +271,32 @@ const submitForm = async () => {
   await userFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        const response = await registerUserApi(userForm.value)
+        let response
+        if (isEdit.value && currentUserId.value) {
+          // 编辑用户
+          response = await updateUserApi({
+            id: currentUserId.value,
+            name: userForm.value.name,
+            userName: userForm.value.userName,
+            phone: userForm.value.phone,
+            sex: userForm.value.sex,
+            idNumber: userForm.value.idNumber
+          })
+        } else {
+          // 新增用户
+          response = await registerUserApi(userForm.value)
+        }
+
         if (response.code === 0) {
-          ElMessage.success('添加用户成功')
+          ElMessage.success(isEdit.value ? '编辑用户成功' : '添加用户成功')
           dialogVisible.value = false
           loadStoreFileData() // 刷新用户列表
         } else {
-          ElMessage.error(response.message || '添加用户失败')
+          ElMessage.error(response.message || '操作失败')
         }
       } catch (error) {
-        console.error('添加用户错误:', error)
-        ElMessage.error('添加用户失败')
+        console.error('Error:', error)
+        ElMessage.error('操作失败')
       }
     }
   })

@@ -25,7 +25,7 @@ let routes = [
     component: () => import("@/view/ragChat/RagChatView.vue"),
     meta: {
       isMenu: true,
-      description: "RagChat",
+      description: "AI问答",
       icon: "ChatDotRound",
       requiresAuth: true,
     },

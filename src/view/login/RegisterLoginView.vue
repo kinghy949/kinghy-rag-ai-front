@@ -45,7 +45,7 @@
       width="500px"
       :close-on-click-modal="false"
     >
-      <div class="user-info">
+      <div class="user-info" v-if="!isEditing">
         <div class="info-item">
           <span class="info-label"><el-icon><User /></el-icon> 姓名</span>
           <span class="info-value">{{ userInfo.name }}</span>
@@ -71,9 +71,38 @@
           <span class="info-value">{{ userInfo.createTime }}</span>
         </div>
       </div>
+
+      <el-form v-else :model="editForm" ref="editFormRef" label-width="100px">
+        <el-form-item label="用户名" prop="userName">
+          <el-input v-model="editForm.userName" placeholder="请输入用户名"></el-input>
+        </el-form-item>
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="editForm.name" placeholder="请输入姓名"></el-input>
+        </el-form-item>
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="editForm.phone" placeholder="请输入手机号"></el-input>
+        </el-form-item>
+        <el-form-item label="性别" prop="sex">
+          <el-select v-model="editForm.sex" placeholder="请选择性别">
+            <el-option label="男" value="男"></el-option>
+            <el-option label="女" value="女"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="身份证号" prop="idNumber">
+          <el-input v-model="editForm.idNumber" placeholder="请输入身份证号"></el-input>
+        </el-form-item>
+      </el-form>
+
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="profileDialogVisible = false">关闭</el-button>
+          <template v-if="!isEditing">
+            <el-button @click="profileDialogVisible = false">关闭</el-button>
+            <el-button type="primary" @click="startEdit">修改</el-button>
+          </template>
+          <template v-else>
+            <el-button @click="cancelEdit">取消</el-button>
+            <el-button type="primary" @click="handleUpdate">保存</el-button>
+          </template>
         </span>
       </template>
     </el-dialog>
@@ -173,6 +202,15 @@ const userInfo = ref<UserInfo>({
 const profileDialogVisible = ref(false)
 const avatarUrl = ref('')
 const isLoading = ref(false)
+const isEditing = ref(false)
+const editForm = ref({
+  id: 0,
+  userName: '',
+  name: '',
+  phone: '',
+  sex: '',
+  idNumber: ''
+})
 
 const fetchUserInfo = async () => {
   try {
@@ -284,6 +322,50 @@ const handleRegister = async () => {
 
 const showRegisterDialog = () => {
   registerDialogVisible.value = true
+}
+
+const startEdit = () => {
+  editForm.value = {
+    id: userInfo.value.id,
+    userName: userInfo.value.userName,
+    name: userInfo.value.name,
+    phone: userInfo.value.phone,
+    sex: userInfo.value.sex,
+    idNumber: userInfo.value.idNumber
+  }
+  isEditing.value = true
+}
+
+const cancelEdit = () => {
+  isEditing.value = false
+}
+
+const handleUpdate = async () => {
+  try {
+    isLoading.value = true
+    const token = localStorage.getItem('token')
+    const response = await fetch(BASE_URL + '/user/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(editForm.value)
+    })
+    const data = await response.json()
+    if (data.code === 0) {
+      ElMessage({ message: '更新成功', type: 'success' })
+      await fetchUserInfo() // 重新获取用户信息
+      isEditing.value = false
+    } else {
+      ElMessage({ message: data.message || '更新失败', type: 'error' })
+    }
+  } catch (error) {
+    console.error('更新用户信息失败:', error)
+    ElMessage({ message: '更新失败，请稍后重试', type: 'error' })
+  } finally {
+    isLoading.value = false
+  }
 }
 
 onMounted(() => {
