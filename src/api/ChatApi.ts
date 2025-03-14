@@ -1,35 +1,24 @@
-import { ChatApi } from "./common";
-import { BASE_URL } from "../http/config";
-
-import { useChatOptionsStore } from "../store/options";
-import { useChatMessageStore } from "../store/message";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 import service from "@/http";
-const chatOptions = useChatOptionsStore();
-const chatMessageStore = useChatMessageStore();
+import { Res } from "./common";
 
-
-// 获取所有对话模型
-export const getModelsApi = async (): Promise<any> => {
-  return await service.get(ChatApi.Models);
+export const ChatApi = {
+  Chat: "/chat/stream",
+  RagChat: "/ai/rag",
 };
 
-// 流式对话
-export const streamChatApi = (input: string) => {
-  // 添加用户提问
-  chatMessageStore.addMessage({
-    role: "user",
-    content: input,
-  });
-  // 添加当前AI回复
-  let answer = "";
-  chatMessageStore.addMessage({
-    role: "assistant",
-    content: answer,
-  });
+// 聊天消息接口
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  isTyping?: boolean;
+}
 
-  // 修改为GET请求，并传入参数
-  fetchEventSource(`${BASE_URL}/chat/stream?message=${encodeURIComponent(input)}&prompt=${(chatOptions.getSystemPrompt)}`, {
-    method: "GET",
-  });
+// 发送消息接口
+export const sendChatMessageApi = async (message: string): Promise<Response> => {
+  return fetch(`${service.defaults.baseURL}${ChatApi.Chat}?message=${encodeURIComponent(message)}`);
+};
+
+// 发送RAG消息接口
+export const sendRagChatMessageApi = async (message: string): Promise<Response> => {
+  return fetch(`${service.defaults.baseURL}${ChatApi.RagChat}?message=${encodeURIComponent(message)}`);
 };

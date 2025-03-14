@@ -1,60 +1,69 @@
 <template>
   <div class="chat-container">
-    <div class="chat-messages" ref="messageContainer">
-      <div v-for="(message, index) in messages" :key="index" 
-           :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
-        <div class="message-wrapper">
-          <div class="message-content" :class="{ 'typing': message.isTyping }" v-html="renderMarkdown(message.content)">
+    <el-card class="box-card">
+      <div class="chat-messages" ref="messageContainer">
+        <div v-for="(message, index) in messages" :key="index" 
+             :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
+          <div class="message-wrapper">
+            <div class="message-content" :class="{ 'typing': message.isTyping }" v-html="renderMarkdown(message.content)">
+            </div>
+            <el-button
+              class="copy-button"
+              type="text"
+              size="small"
+              @click="copyMessage(message.content)"
+            >
+              <el-icon><Document /></el-icon>
+            </el-button>
           </div>
-          <el-button
-            class="copy-button"
-            type="text"
-            size="small"
-            @click="copyMessage(message.content)"
-          >
-            <el-icon><Document /></el-icon>
-          </el-button>
         </div>
       </div>
-    </div>
-    <div class="input-container">
-      <el-input
-        v-model="userInput"
-        type="textarea"
-        :rows="3"
-        placeholder="请输入您的问题..."
-        @keyup.enter.native="handleSend"
-      />
-    </div>
-    <div class="button-group">
-      <el-button type="warning" @click="clearMessages">清空对话</el-button>
-      <el-button type="primary" @click="handleSend" :loading="loading">普通回答</el-button>
-      <el-button type="primary" @click="handleRagSend" :loading="loading">RAG回答</el-button>
-    </div>
+
+      <div class="input-container">
+        <el-input
+          v-model="userInput"
+          type="textarea"
+          :rows="3"
+          placeholder="请输入您的问题..."
+          @keyup.enter="handleSend"
+        />
+      </div>
+
+      <div class="button-group">
+        <el-button type="warning" @click="clearMessages">清空对话</el-button>
+        <el-button type="primary" @click="handleSend" :loading="isLoading">普通回答</el-button>
+        <el-button type="primary" @click="handleRagSend" :loading="isLoading">RAG回答</el-button>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { marked } from 'marked'
-import { BASE_URL } from "@/http/config.ts"
 import { Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-  isTyping?: boolean
-}
+import { sendChatMessageApi, sendRagChatMessageApi, type ChatMessage } from '@/api/ChatApi'
 
 const messages = ref<ChatMessage[]>([])
-const userInput = ref<string>('')
-const loading = ref<boolean>(false)
+const userInput = ref('')
+const isLoading = ref(false)
 const messageContainer = ref<HTMLElement | null>(null)
 
+// 处理普通对话
 const handleSend = async () => {
-  if (!userInput.value.trim() || loading.value) return
+  if (!userInput.value.trim() || isLoading.value) return
+  await sendMessage(sendChatMessageApi)
+}
 
+// 处理RAG对话
+const handleRagSend = async () => {
+  if (!userInput.value.trim() || isLoading.value) return
+  await sendMessage(sendRagChatMessageApi)
+}
+
+// 发送消息通用方法
+const sendMessage = async (apiMethod: (message: string) => Promise<Response>) => {
   messages.value.push({
     role: 'user',
     content: userInput.value
@@ -62,18 +71,28 @@ const handleSend = async () => {
 
   const currentInput = userInput.value
   userInput.value = ''
-  loading.value = true
-  let assistantMessage = {
+  isLoading.value = true
+
+  const assistantMessage: ChatMessage = {
     role: 'assistant',
-    content: '',
-    isTyping: true  // 添加打字机效果标记
+    content: '正在思考中...',
+    isTyping: true
   }
   messages.value.push(assistantMessage)
 
   try {
-    const response = await fetch(BASE_URL+`/chat/stream?message=${encodeURIComponent(currentInput)}`)
-    const reader = response.body.getReader()
+    const response = await apiMethod(currentInput)
+    if (!response.ok) {
+      throw new Error('网络请求失败')
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error('无法读取响应数据')
+    }
+
     const decoder = new TextDecoder()
+    assistantMessage.content = ''  // 清空"正在思考中"的文本
 
     while (true) {
       const { value, done } = await reader.read()
@@ -81,7 +100,6 @@ const handleSend = async () => {
 
       const text = decoder.decode(value)
       assistantMessage.content += text
-
       await nextTick()
       scrollToBottom()
     }
@@ -89,70 +107,20 @@ const handleSend = async () => {
     console.error('Error:', error)
     assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
   } finally {
-    loading.value = false
-    assistantMessage.isTyping = false  // 结束打字机效果
-  }
-}
-
-const handleRagSend = async () => {
-  if (!userInput.value.trim() || loading.value) return
-
-  messages.value.push({
-    role: 'user',
-    content: userInput.value
-  })
-
-  const currentInput = userInput.value
-  userInput.value = ''
-  loading.value = true
-  let assistantMessage = {
-    role: 'assistant',
-    content: '',
-    isTyping: true
-  }
-  messages.value.push(assistantMessage)
-
-  try {
-    const response = await fetch(BASE_URL+`/ai/rag?message=${encodeURIComponent(currentInput)}`)
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
-
-      const text = decoder.decode(value)
-      // 处理SSE格式的数据
-      const lines = text.split('\n')
-      for (const line of lines) {
-        if (line.startsWith('data:')) {
-          // 去掉'data:'前缀，获取实际内容
-          const content = line.slice(5).trim()
-          if (content) {
-            assistantMessage.content += content
-          }
-        }
-      }
-
-      await nextTick()
-      scrollToBottom()
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
-  } finally {
-    loading.value = false
+    isLoading.value = false
     assistantMessage.isTyping = false
   }
 }
 
+// 滚动到底部
 const scrollToBottom = () => {
   if (messageContainer.value) {
     messageContainer.value.scrollTop = messageContainer.value.scrollHeight
   }
 }
 
-const copyMessage = async (content) => {
+// 复制消息
+const copyMessage = async (content: string) => {
   try {
     await navigator.clipboard.writeText(content)
     ElMessage({
@@ -169,6 +137,7 @@ const copyMessage = async (content) => {
   }
 }
 
+// 清空对话
 const clearMessages = () => {
   messages.value = [{
     role: 'assistant',
@@ -176,12 +145,12 @@ const clearMessages = () => {
   }]
 }
 
-// 添加markdown渲染函数
+// Markdown渲染
 const renderMarkdown = (content: string) => {
   try {
     return marked(content, {
-      breaks: true, // 支持换行
-      sanitize: true // 消毒HTML标签，防止XSS攻击
+      breaks: true,
+      gfm: true
     })
   } catch (error) {
     console.error('Markdown parsing error:', error)
@@ -199,10 +168,24 @@ onMounted(() => {
 
 <style scoped lang="less">
 .chat-container {
-  height: 90vh;  /* 调整容器高度 */
-  display: flex;
-  flex-direction: column;
+  height: 100vh;
   padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  .box-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    
+    :deep(.el-card__body) {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow: hidden;
+    }
+  }
 }
 
 .chat-messages {
@@ -212,11 +195,45 @@ onMounted(() => {
   padding: 10px;
   border: 1px solid #ebeef5;
   border-radius: 4px;
+  min-height: 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #909399;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: #f0f2f5;
+  }
 }
 
 .message {
   margin-bottom: 15px;
   max-width: 80%;
+
+  &.user-message {
+    margin-left: auto;
+    text-align: right;
+
+    .message-wrapper {
+      flex-direction: row-reverse;
+      justify-content: flex-start;
+    }
+
+    .message-content {
+      background-color: #007AFF;
+      color: white;
+    }
+  }
+
+  &.assistant-message {
+    margin-right: auto;
+    text-align: left;
+  }
 }
 
 .message-wrapper {
@@ -225,30 +242,17 @@ onMounted(() => {
   gap: 8px;
 }
 
-.user-message {
-  margin-left: auto;
-  text-align: right;
-}
-
-.user-message .message-wrapper {
-  flex-direction: row-reverse; /* 调整用户消息的复制按钮位置 */
-  justify-content: flex-start;
-}
-
-.assistant-message {
-  margin-right: auto;
-  text-align: left;
-}
-
 .message-content {
   display: inline-block;
   padding: 10px 15px;
   border-radius: 10px;
   background-color: #f0f0f0;
   word-break: break-word;
+  font-size: 14px;
 
   :deep(p) {
     margin: 0;
+    line-height: 1.5;
   }
 
   :deep(pre) {
@@ -256,6 +260,7 @@ onMounted(() => {
     padding: 10px;
     border-radius: 4px;
     overflow-x: auto;
+    font-size: 13px;
   }
 
   :deep(code) {
@@ -263,6 +268,7 @@ onMounted(() => {
     background-color: #f8f8f8;
     padding: 2px 4px;
     border-radius: 3px;
+    font-size: 13px;
   }
 
   :deep(ul), :deep(ol) {
@@ -276,11 +282,20 @@ onMounted(() => {
     border-left: 4px solid #ddd;
     color: #666;
   }
+
+  &.typing {
+    &::after {
+      content: '...';
+      animation: ellipsis 1.5s infinite;
+    }
+  }
 }
 
-.user-message .message-content {
-  background-color: #007AFF;
-  color: white;
+@keyframes ellipsis {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+  100% { content: '.'; }
 }
 
 .copy-button {
@@ -288,66 +303,38 @@ onMounted(() => {
   transition: opacity 0.3s;
   padding: 4px;
   height: auto;
-}
 
-.message-wrapper:hover .copy-button {
-  opacity: 1;
+  &:hover {
+    opacity: 1;
+  }
 }
 
 .input-container {
+  margin-top: auto;
   display: flex;
   gap: 10px;
   padding: 10px;
   background-color: #fff;
   border: 1px solid #ebeef5;
   border-radius: 4px;
-}
+  min-height: 100px;
 
-.input-container .el-textarea {
-  flex: 1;
-}
-
-/* 自定义滚动条样式 */
-.chat-messages::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background-color: #909399;
-  border-radius: 3px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-  background-color: #f0f2f5;
-}
-
-.typing-cursor {
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  from, to {
-    opacity: 1;
+  .el-textarea {
+    flex: 1;
   }
-  50% {
-    opacity: 0;
-  }
-}
-
-.typing {
-  border-right: none;
 }
 
 .button-group {
   display: flex;
-  flex-direction: row;
-  justify-content: flex-end;  /* 改为靠右对齐 */
+  justify-content: flex-end;
   gap: 8px;
   margin-top: 10px;
-}
+  padding: 10px 0;
 
-.button-group .el-button {
-  width: 100px;
-  height: 40px;
+  .el-button {
+    width: 120px;
+    height: 40px;
+    font-size: 14px;
+  }
 }
 </style>
