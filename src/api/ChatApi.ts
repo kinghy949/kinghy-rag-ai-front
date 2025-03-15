@@ -1,5 +1,4 @@
 import service from "@/http";
-import { Res } from "./common";
 
 export const ChatApi = {
   Chat: "/chat/stream",
