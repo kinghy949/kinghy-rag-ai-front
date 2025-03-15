@@ -1,9 +1,9 @@
 import service from "@/http";
-import { Res } from "./common";
-
+type Res = any;
 export const FrequencyApi = {
   QueryPage: "/frequency/page",
   Clean: "/frequency/clean",
+  List: "/frequency/getList",
 };
 
 // 查询参数接口
@@ -33,4 +33,8 @@ export const queryFrequencyApi = async (params: FrequencyQueryParams): Promise<R
 // 清空词频数据
 export const cleanFrequencyApi = async (): Promise<Res> => {
   return service.post(FrequencyApi.Clean);
-}; 
+};
+
+export const listFrequencyApi = async (): Promise<Res> => {
+  return service.get(FrequencyApi.List);
+};

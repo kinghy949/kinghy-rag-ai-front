@@ -95,7 +95,7 @@ let routes = [
     meta: {
       isMenu: true,
       description: "热点词分析",
-      icon: "WarnTriangleFilled",
+      icon: "Histogram",
       requiresAuth: true,
       roles: ['admin']
     },
