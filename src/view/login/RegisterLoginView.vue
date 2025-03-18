@@ -273,7 +273,7 @@ const handleLogin = async () => {
 
       ElMessage({ message: '登录成功', type: 'success' })
       await fetchUserInfo()
-      router.push('/')
+      router.push('/login')
     } else {
       ElMessage({ message: data.message, type: 'error' })
     }

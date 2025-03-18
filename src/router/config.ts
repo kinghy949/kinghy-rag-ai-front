@@ -89,6 +89,18 @@ let routes = [
     },
   },
   {
+    path: "/senCategory",
+    name: "senCategory",
+    component: () => import("@/view/sensitive/SenCategoryView.vue"),
+    meta: {
+      isMenu: true,
+      description: "敏感词分类",
+      icon: "menu",
+      requiresAuth: true,
+      roles: ['admin']
+    },
+  },
+  {
     path: "/frequency",
     name: "frequency",
     component: () => import("@/view/frequency/WordFrequencyView.vue"),
