@@ -31,6 +31,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+              <el-dropdown-item command="password">修改密码</el-dropdown-item>
               <el-dropdown-item command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -69,6 +70,9 @@
         <div class="info-item">
           <span class="info-label"><el-icon><Timer /></el-icon> 创建时间</span>
           <span class="info-value">{{ userInfo.createTime }}</span>
+        </div>
+        <div class="info-item">
+          <el-button type="primary" @click="showPasswordDialog">修改密码</el-button>
         </div>
       </div>
 
@@ -143,15 +147,47 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 修改密码对话框 -->
+    <el-dialog
+      v-model="passwordDialogVisible"
+      title="修改密码"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="passwordFormRef"
+        :model="passwordForm"
+        :rules="passwordRules"
+        label-width="100px"
+      >
+        <el-form-item label="原密码" prop="oldPassword">
+          <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入原密码" />
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="passwordDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleUpdatePassword">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import {ElMessage, FormInstance, FormRules} from 'element-plus'
 import { User, UserFilled, Iphone, Male, Document, Timer } from '@element-plus/icons-vue'
 import router from '@/router'
 import { BASE_URL } from '@/http/config'
+import { updatePasswordApi } from '@/api/UserApi'
 
 interface UserInfo {
   id: number;
@@ -211,6 +247,14 @@ const editForm = ref({
   sex: '',
   idNumber: ''
 })
+const passwordDialogVisible = ref(false)
+const passwordFormRef = ref<FormInstance>()
+const passwordForm = ref({
+  id: 0,
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 const fetchUserInfo = async () => {
   try {
@@ -235,6 +279,8 @@ const fetchUserInfo = async () => {
 const handleCommand = (command: string) => {
   if (command === 'profile') {
     profileDialogVisible.value = true
+  } else if (command === 'password') {
+    showPasswordDialog()
   } else if (command === 'logout') {
     localStorage.removeItem('token')
     localStorage.removeItem('userRole')
@@ -366,6 +412,75 @@ const handleUpdate = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+// 密码表单验证规则
+const passwordRules: FormRules = {
+  oldPassword: [
+    { required: true, message: '请输入原密码', trigger: 'blur' },
+    { min: 5, max: 20, message: '密码长度在 5 到 20 个字符', trigger: 'blur' }
+  ],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 5, max: 20, message: '密码长度在 5 到 20 个字符', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    { min: 5, max: 20, message: '密码长度在 5 到 20 个字符', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== passwordForm.value.newPassword) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+// 显示修改密码对话框
+const showPasswordDialog = () => {
+  passwordForm.value = {
+    id: userInfo.value.id,
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+  passwordDialogVisible.value = true
+}
+
+// 处理修改密码
+const handleUpdatePassword = async () => {
+  if (!passwordFormRef.value) return
+  
+  await passwordFormRef.value.validate(async (valid: boolean) => {
+    if (valid) {
+      try {
+        isLoading.value = true
+        const response = await updatePasswordApi(passwordForm.value)
+        if (response.code === 0) {
+          ElMessage.success('密码修改成功')
+          passwordDialogVisible.value = false
+          // 清空表单
+          passwordForm.value = {
+            id: userInfo.value.id,
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          }
+        } else {
+          ElMessage.error(response.message || '密码修改失败')
+        }
+      } catch (error) {
+        console.error('修改密码失败:', error)
+        ElMessage.error('密码修改失败，请稍后重试')
+      } finally {
+        isLoading.value = false
+      }
+    }
+  })
 }
 
 onMounted(() => {

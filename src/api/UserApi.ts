@@ -6,6 +6,8 @@ export const UserApi = {
   Download: "/user/download",
   Register: "/user/register",
   Update: "/user/update",
+  Login: "/user/login",
+  UpdatePassword: "/user/updatePassword"
 };
 
 interface RegisterUserDto {
@@ -28,6 +30,14 @@ interface UpdateUserDto {
   idNumber: string;
 }
 
+// 修改密码请求参数接口
+export interface UpdatePasswordDto {
+  id: number;
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export const registerUserApi = async (data: RegisterUserDto): Promise<Res> => {
   return service.post(UserApi.Register, data);
 };
@@ -41,4 +51,9 @@ export const queryFileApi = async (params: QueryFileDto): Promise<Res> => {
 
 export const updateUserApi = async (data: UpdateUserDto): Promise<Res> => {
   return service.put(UserApi.Update, data);
+};
+
+// 修改密码
+export const updatePasswordApi = async (data: UpdatePasswordDto) => {
+  return service.post(UserApi.UpdatePassword, data);
 };
